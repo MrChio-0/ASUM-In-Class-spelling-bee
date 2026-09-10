@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASUM Spelling Bee - 16:9 Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-yellow: #FFD966;
+            --light-yellow: #FFF2CC;
+            --honey-orange: #F4B183;
+            --dark-brown: #593E26;
+            --soft-white: #FFFAEE;
+            --correct-green: #A9D18E;
+            --incorrect-red: #FF9999;
+            --alert-red: #d9534f;
+        }
+
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Nunito', sans-serif;
+            background-color: #1a1a1a; 
+            color: var(--dark-brown);
+            height: 100vh; width: 100vw; overflow: hidden; user-select: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        h1, h2, h3, button, select, #prep-counter, .timer-display, #game-word { 
+            font-family: 'Fredoka One', cursive, sans-serif; 
+        }
+
+        .page {
+            display: none; 
+            width: 100vw; 
+            aspect-ratio: 16 / 9; 
+            max-height: 100vh;
+            background: radial-gradient(circle at center, var(--soft-white) 0%, var(--light-yellow) 100%);
+            position: relative; flex-direction: column;
+            align-items: center; justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        .active { display: flex; }
+
+        .page::before {
+            content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 250, 238, 0.4); z-index: 1;
+        }
+        #main-page::before { background-color: rgba(255, 250, 238, 0.1); }
+        #game-page::before { display: none; } 
+        .page > * { z-index: 2; }
+
+        button, select {
+            background-color: var(--primary-yellow);
+            color: var(--dark-brown);
+            border: 3px solid var(--honey-orange);
+            border-radius: 20px;
+            padding: 10px 20px; font-size: 1.1rem;
+            cursor: pointer; transition: all 0.2s;
+            outline: none;
+        }
+        button:hover { transform: translateY(-2px); background-color: var(--honey-orange); color: white; }
+        button:disabled { background-color: #ccc !important; border-color: #aaa !important; color: #888 !important; cursor: not-allowed; transform: none !important; }
+
+        .utility-btn {
+            position: absolute;
+            bottom: 15px;
+            font-size: 0.85rem;
+            padding: 5px 12px;
+            border-radius: 12px;
+            background-color: rgba(89, 62, 38, 0.1);
+            border: 2px solid var(--dark-brown);
+            color: var(--dark-brown);
+            z-index: 10;
+            opacity: 0.7;
+        }
+        .utility-btn:hover {
+            opacity: 1;
+            transform: translateY(-1px);
+            background-color: var(--dark-brown);
+            color: white;
+        }
+
+        .pos-speed { right: 15px; } 
+        .pos-reveal { right: 130px; } 
+
+        .btn-active {
+            background-color: var(--honey-orange);
+            color: white;
+            opacity: 0.9;
+        }
+
+        #main-page { background-image: url('image_0.png'); background-size: 100% 100%; }
+        .top-logo { 
+            position: absolute; top: 0%; left: 50%; 
+            transform: translateX(-50%); width: 1200px; 
+            filter: drop-shadow(0px 8px 12px rgba(0,0,0,0.15)); 
+        }
+        .main-controls { display: flex; gap: 25px; align-items: center; margin-top: 35vh; }
+
+        #prep-page { 
+            background-color: var(--primary-yellow) !important; 
+            background-image: none !important; 
+        }
+        #prep-page::before { display: none; }
+        #prep-counter { 
+            font-size: 15rem; 
+            color: white; 
+            text-shadow: 10px 10px 0px var(--honey-orange); 
+            z-index: 10;
+        }
+
+        #game-page { background-image: url('spfun1.png'); background-size: 100% 100%; }
+        .timer-display { font-size: 4rem; background: white; padding: 10px 30px; border-radius: 30px; border: 5px solid var(--primary-yellow); transition: all 0.2s; }
+        .timer-out { color: var(--alert-red); border-color: var(--alert-red); transform: scale(1.1); box-shadow: 0 0 20px rgba(217, 83, 79, 0.3); }
+        #game-word { font-size: 7rem; text-align: center; margin-bottom: 40px; min-height: 140px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        
+        .word-hidden { 
+            color: #b1a796 !important; 
+            font-size: 3.5rem !important; 
+            opacity: 0.6; 
+        }
+
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 1000; }
+        .modal { background: var(--soft-white); padding: 30px 40px; border-radius: 30px; text-align: center; border: 5px solid var(--honey-orange); max-width: 800px; width: 90%; }
+        
+        textarea { width: 100%; height: 180px; border-radius: 15px; border: 3px solid var(--honey-orange); padding: 15px; font-size: 1.1rem; resize: none; font-family: 'Nunito', sans-serif; box-sizing: border-box; margin-top: 10px; }
+        .word-list-box { max-height: 120px; overflow-y: auto; background: white; border: 2px solid var(--honey-orange); border-radius: 10px; padding: 10px; margin-top: 10px; text-align: left; display: flex; flex-wrap: wrap; gap: 8px; }
+        .word-chip { background: var(--light-yellow); border: 1px solid var(--honey-orange); padding: 3px 10px; border-radius: 15px; font-weight: bold; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <audio id="ding-sound" src="Ding_1.mp3"></audio>
+
+    <div id="main-page" class="page active">
+        <img src="logo_01.png" class="top-logo">
+        <div style="position:absolute; top:20px; right:20px; display:flex; gap:15px;">
+            <button onclick="openBankModal()">📚 Input Word Bank</button>
+        </div>
+        
+        <div class="main-controls">
+            <button onclick="startPreparation()" style="font-size: 1.5rem; padding: 15px 40px;">▶ START!</button>
+            <button onclick="setTime()" id="btn-time">⏱ TIME</button>
+        </div>
+
+        <p id="word-count-status" style="position:absolute; bottom:45px; left:20px; margin:0; font-weight:bold; font-size:1.1rem; color:#f6efe5;">Current Words: 0</p>
+        <p id="dict-status" style="position:absolute; bottom:15px; left:20px; margin:0; font-weight:bold; font-size:0.85rem; opacity:0.8; color:#f6efe5">Dictionary: Loading...</p>
+    </div>
+
+    <div id="prep-page" class="page"><div id="prep-counter">3</div></div>
+
+    <div id="game-page" class="page">
+        <div style="position:absolute; top:20px; left:40px; right:40px; display:flex; justify-content:space-between; align-items:center;">
+            <button onclick="endGameEarly()">⬅ BACK</button>
+            <div class="timer-display" id="timer">00:00</div>
+        </div>
+        <div id="game-word" onclick="toggleWordVisibility(event)">Word</div>
+        <div style="display:flex; gap:35px;">
+            <button style="background-color:var(--incorrect-red); font-size:1.4rem; padding: 15px 40px;" onclick="markAnswer(false)">✖ Incorrect</button>
+            <button style="background-color:var(--primary-yellow);" onclick="speakCurrentWord()">🔊 Pardon</button>
+            <button style="background-color:var(--correct-green); font-size:1.4rem; padding: 15px 40px;" onclick="markAnswer(true)">✔ Correct</button>
+        </div>
+
+        <button class="utility-btn pos-reveal btn-active" id="btn-reveal-switch" onclick="toggleRevealMode(event)">🔍 Hide: ON</button>
+        <button class="utility-btn pos-speed" id="btn-speech-speed" onclick="adjustSpeechSpeed(event)">⚡ Speed: 0.8</button>
+    </div>
+
+    <div class="modal-overlay" id="bank-modal">
+        <div class="modal">
+            <h2>📚 Input Word Bank</h2>
+            <p style="margin: 0; font-size:0.95rem;">Paste/Type words below (one word per line):</p>
+            <textarea id="bulk-input" placeholder="apple&#10;banana&#10;orange..."></textarea>
+            
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button onclick="addWords(true)" style="flex:1;">➕ Add (Check Dict)</button>
+                <button onclick="addWords(false)" style="flex:1; background-color: #FFCC00;">🔥 Force Add</button>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px;">
+                <span id="modal-word-count" style="font-weight:bold;">Total Words: 0</span>
+                <div>
+                    <button onclick="clearCurrentLevel()" style="background-color:var(--alert-red); color:white; padding:5px 12px; font-size:0.85rem;">🔥 Clear All</button>
+                </div>
+            </div>
+
+            <div class="word-list-box" id="word-chip-container"></div>
+
+            <div style="margin-top:20px;">
+                <button onclick="closeBankModal()" style="background-color:var(--correct-green); padding: 10px 40px;">OK / Save</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="result-modal">
+        <div class="modal">
+            <h2>Time's Up! ⏱</h2>
+            <p style="font-size:2.5rem; color:var(--correct-green);">✔ Correct: <span id="res-correct">0</span></p>
+            <p style="font-size:2.5rem; color:var(--incorrect-red);">✖ Incorrect: <span id="res-incorrect">0</span></p>
+            <button onclick="closeModalAndHome()">Back to Home</button>
+        </div>
+    </div>
+
+    <script>
+    var _0xef21=["\x61\x70\x70\x6C\x65","\x62\x65\x65","\x68\x6F\x6E\x65\x79","\x77\x68\x69\x74\x65\x62\x6F\x61\x72\x64","\x63\x65\x6E\x74\x65\x72","\x63\x65\x6E\x74\x72\x65","\x63\x6F\x6C\x6F\x72","\x63\x6F\x6C\x6F\x75\x72","\x64\x69\x6E\x67\x2D\x73\x6F\x75\x6E\x64","\x67\x65\x74\x45\x6C\x65\x6D\x65\x6E\x74\x42\x79\x49\x64","\x62\x74\x6E\x2D\x73\x70\x65\x65\x63\x68\x2D\x73\x70\x65\x65\x64","\x69\x6E\x6E\x65\x72\x54\x65\x78\x74","\xFE\x0F\x20\x53\x70\x65\x65\x64\x3A\x20","\x62\x74\x6E\x2D\x72\x65\x76\x65\x61\x6C\x2D\x73\x77\x69\x74\x63\x68","\x67\x61\x6D\x65\x2D\x77\x6F\x72\x64","\x5F\xFE\x0F\x20\x48\x69\x64\x65\x3A\x20\x4F\x4E","\x63\x6C\x61\x73\x73\x4C\x69\x73\x74","\x61\x64\x64","\x62\x74\x6E\x2D\x61\x63\x74\x69\x76\x65","\x5B\x20\x50\x72\x65\x73\x73\x20\x53\x70\x61\x63\x65\x20\x74\x6F\x20\x52\x65\x76\x65\x61\x6C\x20\x5D","\x77\x6F\x72\x64\x2D\x68\x69\x64\x64\x65\x6E","\x5F\xFE\x0F\x20\x48\x69\x64\x65\x3A\x20\x4F\x46\x46","\x72\x65\x6D\x6F\x76\x65","\x68\x74\x74\x70\x73\x3A\x2F\x2F\x72\x61\x77\x2E\x67\x69\x74\x68\x75\x62\x75\x73\x65\x72\x63\x6F\x6E\x74\x65\x6E\x74\x2E\x63\x6F\x6D\x2F\x64\x77\x79\x6C\x2F\x65\x6E\x67\x6C\x69\x73\x68\x2D\x77\x6F\x72\x64\x73\x2F\x6D\x61\x73\x74\x65\x72\x2F\x77\x6F\x72\x64\x73\x5F\x61\x6C\x70\x68\x61\x2E\x74\x78\x74","\x73\x70\x6C\x69\x74","\x74\x72\x69\x6D","\x74\x6F\x4C\x6F\x77\x65\x72\x43\x61\x73\x65","\x64\x69\x63\x74\x2D\x73\x74\x61\x74\x75\x73","\x44\x69\x63\x74\x69\x6F\x6E\x61\x72\x79\x20\x52\x65\x61\x64\x79\x3A\x20","\x20\x77\x6F\x72\x64\x73\x2E","\x4F\x66\x66\x6C\x69\x6E\x65\x20\x4D\x6F\x64\x65\x2E","\x41\x53\x55\x4D\x5F\x53\x49\x4E\x47\x4C\x45\x5F\x42\x41\x4E\x4B","\x73\x74\x72\x69\x6E\x67\x69\x66\x79","\x73\x65\x74\x49\x74\x65\x6D","\x67\x65\x74\x49\x74\x65\x6D","\x70\x61\x72\x73\x65","\x62\x61\x6E\x6B\x2D\x6D\x6F\x64\x61\x6C","\x73\x74\x79\x6C\x65","\x64\x69\x73\x70\x6C\x61\x79","\x66\x6C\x65\x78","\x6E\x6F\x6E\x65","\x62\x75\x6C\x6B\x2D\x69\x6E\x70\x75\x74","\x76\x61\x6C\x75\x65","\x66\x69\x6C\x74\x65\x72","\x68\x61\x73","\x65\x76\x65\x72\x79","\x70\x75\x73\x68","\x69\x6E\x63\x6C\x75\x64\x65\x73","\x6D\x61\x70","\x77\x6F\x72\x64\x2D\x63\x68\x69\x70\x2D\x63\x6F\x6E\x74\x61\x69\x6E\x65\x72","\x69\x6E\x6E\x65\x72\x48\x54\x4D\x4C","\x63\x72\x65\x61\x74\x65\x45\x6C\x65\x6D\x65\x6E\x74","\x73\x70\x61\x6E","\x63\x6C\x61\x73\x73\x4E\x61\x6D\x65","\x77\x6F\x72\x64\x2D\x63\x68\x69\x70","\x61\x70\x70\x65\x6E\x64\x43\x68\x69\x6C\x64","\x77\x6F\x72\x64\x2D\x63\x6F\x75\x6E\x74\x2D\x73\x74\x61\x74\x75\x73","\x43\x75\x72\x72\x65\x6E\x74\x20\x57\x6F\x72\x64\x73\x3A\x20","\x6D\x6F\x64\x61\x6C\x2D\x77\x6F\x72\x64\x2D\x63\x6F\x75\x6E\x74","\x54\x6F\x74\x61\x6C\x20\x57\x6F\x72\x64\x73\x3A\x20","\x70\x72\x65\x70\x2D\x70\x61\x67\x65","\x70\x72\x65\x70\x2D\x63\x6F\x75\x6E\x74\x65\x72","\x53\x54\x41\x52\x54\x21","\x53\x74\x61\x72\x74\x21","\x74\x69\x6D\x65\x72","\x74\x69\x6D\x65\x72\x2D\x6F\x75\x74","\x67\x61\x6D\x65\x2D\x70\x61\x67\x65","\x70\x6C\x61\x79","\x63\x61\x74\x63\x68","\x70\x6F\x70","\x6B\x65\x79\x64\x6F\x77\x6E","\x63\x6F\x64\x65","\x53\x70\x61\x63\x65","\x61\x63\x74\x69\x76\x65","\x63\x6F\x6E\x74\x61\x69\x6E\x73","\x70\x72\x65\x76\x65\x6E\x74\x44\x65\x66\x61\x75\x6C\x74","\x61\x64\x64\x45\x76\x65\x6E\x74\x4C\x69\x73\x74\x65\x6E\x65\x72","\x72\x65\x73\x2D\x63\x6F\x72\x72\x65\x63\x74","\x72\x65\x73\x2D\x69\x6E\x63\x6F\x72\x72\x65\x63\x74","\x72\x65\x73\x75\x6C\x74\x2D\x6D\x6F\x64\x61\x6C","\x70\x61\x64\x53\x74\x61\x72\x74","\x30","\x30\x3A","\x73\x70\x65\x65\x63\x68\x53\x79\x6E\x74\x68\x65\x73\x69\x73","\x63\x61\x6E\x63\x65\x6C","\x6C\x61\x6E\x67","\x65\x6E\x2D\x55\x4B","\x6F\x6E\x65\x6E\x64","\x73\x70\x65\x61\x6B","\x72\x61\x74\x65","\x2E\x70\x61\x67\x65","\x71\x75\x65\x72\x79\x53\x65\x6C\x65\x63\x74\x6F\x72\x41\x6C\x6C","\x66\x6F\x72\x45\x61\x63\x68","\x6D\x61\x69\x6E\x2D\x70\x61\x67\x65","\x62\x74\x6E\x2D\x74\x69\x6D\x65","\xDF\xBF\x20"];
+    let wordBank = [];
+    let englishDictionary = new Set(["a", _0xef21[0], _0xef21[1], _0xef21[2], _0xef21[3], _0xef21[4], _0xef21[5], _0xef21[6], _0xef21[7]]); 
+    let gameTimeLimit = 0, timerInterval, remainingTime = 0, score = { correct: 0, incorrect: 0 }, gameWords = [], currentWord = "";
+    let timeIsUp = false, isWordRevealed = false, isHideModeActive = true, speechSpeed = 0.8;
+
+    const dingSound = document[_0xef21[9]](_0xef21[8]);
+
+    function adjustSpeechSpeed(e) {
+        if(e) e.stopPropagation();
+        let inputSpeed = prompt("Enter Speech Speed (Recommended: 0.5 - 1.5):", speechSpeed);
+        if (inputSpeed !== null) {
+            let parsed = parseFloat(inputSpeed);
+            if (!isNaN(parsed) && parsed > 0 && parsed <= 3) {
+                speechSpeed = parsed;
+                document[_0xef21[9]](_0xef21[10])[_0xef21[11]] = `⚡ Speed: ${speechSpeed}`;
+            } else { alert("Please enter a valid number between 0.1 and 3.0"); }
+        }
+    }
+
+    function toggleRevealMode(e) {
+        if(e) e.stopPropagation();
+        isHideModeActive = !isHideModeActive;
+        const btn = document[_0xef21[9]](_0xef21[13]);
+        const wordEl = document[_0xef21[9]](_0xef21[14]);
+        if (isHideModeActive) {
+            btn[_0xef21[11]] = "🔍 Hide: ON";
+            btn[_0xef21[16]][_0xef21[17]](_0xef21[18]);
+            isWordRevealed = false;
+            wordEl[_0xef21[11]] = _0xef21[19];
+            wordEl[_0xef21[16]][_0xef21[17]](_0xef21[20]);
+        } else {
+            btn[_0xef21[11]] = "🔍 Hide: OFF";
+            btn[_0xef21[16]][_0xef21[22]](_0xef21[18]);
+            isWordRevealed = true;
+            wordEl[_0xef21[11]] = currentWord;
+            wordEl[_0xef21[16]][_0xef21[22]](_0xef21[20]);
+        }
+    }
+
+    async function loadExtendedDictionary() {
+        try {
+            const response = await fetch(_0xef21[23]);
+            const text = await response.text();
+            text[_0xef21[24]]('\n').forEach(w => { if(w[_0xef21[25]]()) englishDictionary.add(w[_0xef21[25]]()[_0xef21[26]]()); });
+            document[_0xef21[9]](_0xef21[27])[_0xef21[11]] = _0xef21[28] + englishDictionary.size.toLocaleString() + _0xef21[29];
+        } catch (e) { document[_0xef21[9]](_0xef21[27])[_0xef21[11]] = _0xef21[30]; }
+    }
+    loadExtendedDictionary();
+
+    function autoSaveToLocal() { 
+        localStorage[_0xef21[33]](_0xef21[31], JSON[_0xef21[32]](wordBank)); 
+        updateWordCountDisplays();
+    }
+
+    function loadBank() {
+        const data = localStorage[_0xef21[34]](_0xef21[31]);
+        if (data) { 
+            try { wordBank = JSON[_0xef21[35]](data); } catch(e) { wordBank = []; }
+        }
+        updateWordCountDisplays();
+    }
+    loadBank();
+
+    function openBankModal() { renderWordChips(); document[_0xef21[9]](_0xef21[36])[_0xef21[37]][_0xef21[38]] = _0xef21[39]; }
+    function closeBankModal() { document[_0xef21[9]](_0xef21[36])[_0xef21[37]][_0xef21[38]] = _0xef21[40]; }
+
+    function addWords(checkDict = true) {
+        let lines = document[_0xef21[9]](_0xef21[41])[_0xef21[42]][_0xef21[24]]('\n');
+        let added = 0, dups = 0, typoList = [];
+        lines.forEach(line => {
+            let entry = line[_0xef21[25]]();
+            if(!entry) return;
+            if(!/^[a-zA-Z\s\-\/\(\)]+$/.test(entry)) { typoList[_0xef21[46]](entry); return; }
+            if(checkDict) {
+                let segments = entry[_0xef21[26]]()[_0xef21[24]](/[\s\/\(\)\-]+/)[_0xef21[43]](s => s.length > 0);
+                if(!segments[_0xef21[45]](s => englishDictionary[_0xef21[44]](s))) { typoList[_0xef21[46]](entry); return; }
+            }
+            let isDuplicate = wordBank[_0xef21[48]](w => w[_0xef21[26]]())[_0xef21[47]](entry[_0xef21[26]]());
+            if(isDuplicate) { dups++; } else { wordBank[_0xef21[46]](entry); added++; }
+        });
+        document[_0xef21[9]](_0xef21[41])[_0xef21[42]] = "";
+        renderWordChips(); autoSaveToLocal();
+        let msg = `✅ Added: ${added}\n⚠️ Dups: ${dups}\n❌ Typos: ${typoList.length}`;
+        if(typoList.length > 0) msg += `\n- ` + typoList.join('\n- ');
+        alert(msg);
+    }
+
+    function renderWordChips() {
+        const container = document[_0xef21[9]](_0xef21[49]);
+        container[_0xef21[50]] = "";
+        wordBank.forEach(w => {
+            let chip = document[_0xef21[51]](_0xef21[52]);
+            chip[_0xef21[53]] = _0xef21[54];
+            chip[_0xef21[11]] = w;
+            container[_0xef21[55]](chip);
+        });
+        updateWordCountDisplays();
+    }
+
+    function updateWordCountDisplays() {
+        document[_0xef21[9]](_0xef21[56])[_0xef21[11]] = _0xef21[57] + wordBank.length;
+        const modalCount = document[_0xef21[9]](_0xef21[58]);
+        if(modalCount) modalCount[_0xef21[11]] = _0xef21[59] + wordBank.length;
+    }
+
+    function clearCurrentLevel() { 
+        if(confirm(`Clear all current words in word bank?`)) { 
+            wordBank = []; renderWordChips(); autoSaveToLocal(); 
+        } 
+    }
+
+    function startPreparation() {
+        if(gameTimeLimit <= 0) return alert("Please set time first! (Click ⏱ TIME)");
+        if(wordBank.length === 0) return alert("Word bank is empty! Click '📚 Input Word Bank' to add words.");
+        showPage(_0xef21[60]);
+        let count = 3;
+        const run = () => {
+            if (count > 0) {
+                document[_0xef21[9]](_0xef21[61])[_0xef21[11]] = count;
+                speak(count.toString(), () => { setTimeout(() => { count--; run(); }, 200); });
+            } else {
+                document[_0xef21[9]](_0xef21[61])[_0xef21[11]] = _0xef21[62];
+                speak(_0xef21[63], () => startGame());
+            }
+        };
+        run();
+    }
+
+    function startGame() {
+        timeIsUp = false; score = { correct: 0, incorrect: 0 };
+        gameWords = [...wordBank].sort(() => Math.random() - 0.5);
+        remainingTime = gameTimeLimit;
+        document[_0xef21[9]](_0xef21[64])[_0xef21[16]][_0xef21[22]](_0xef21[65]);
+        showPage(_0xef21[66]); updateTimerDisplay(); nextWord();
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => { 
+            remainingTime--; updateTimerDisplay(); 
+            if(remainingTime <= 0) { 
+                clearInterval(timerInterval);
+                timeIsUp = true;
+                dingSound[_0xef21[67]]()[_0xef21[68]](e=>{}); 
+            }
+        }, 1000);
+    }
+
+    function nextWord() {
+        if (gameWords.length === 0) return;
+        currentWord = gameWords[_0xef21[69]]();
+        const wordEl = document[_0xef21[9]](_0xef21[14]);
+        if (isHideModeActive) {
+            isWordRevealed = false;
+            wordEl[_0xef21[11]] = _0xef21[19];
+            wordEl[_0xef21[16]][_0xef21[17]](_0xef21[20]);
+        } else {
+            isWordRevealed = true;
+            wordEl[_0xef21[11]] = currentWord;
+            wordEl[_0xef21[16]][_0xef21[22]](_0xef21[20]);
+        }
+        speakWord();
+    }
+
+    function toggleWordVisibility(e) {
+        if(e) e.stopPropagation(); 
+        if (!isHideModeActive) return; 
+        const wordEl = document[_0xef21[9]](_0xef21[14]);
+        if (isWordRevealed) {
+            wordEl[_0xef21[11]] = _0xef21[19];
+            wordEl[_0xef21[16]][_0xef21[17]](_0xef21[20]);
+            isWordRevealed = false;
+        } else {
+            wordEl[_0xef21[11]] = currentWord;
+            wordEl[_0xef21[16]][_0xef21[22]](_0xef21[20]);
+            isWordRevealed = true;
+        }
+    }
+
+    window[_0xef21[76]](_0xef21[70], function(e) {
+        if (e[_0xef21[71]] === _0xef21[72] && document[_0xef21[9]](_0xef21[66])[_0xef21[16]][_0xef21[74]](_0xef21[73])) {
+            e[_0xef21[75]](); toggleWordVisibility();
+        }
+    });
+
+    function markAnswer(correct) {
+        if(correct) score.correct++; else score.incorrect++;
+        if(timeIsUp || gameWords.length === 0) {
+            if(!timeIsUp) dingSound[_0xef21[67]]()[_0xef21[68]](e=>{});
+            endGameActual();
+        } else { nextWord(); }
+    }
+
+    function endGameActual() {
+        clearInterval(timerInterval);
+        setTimeout(() => { 
+            document[_0xef21[9]](_0xef21[77])[_0xef21[11]] = score.correct;
+            document[_0xef21[9]](_0xef21[78])[_0xef21[11]] = score.incorrect;
+            document[_0xef21[9]](_0xef21[79])[_0xef21[37]][_0xef21[38]] = _0xef21[39]; 
+        }, 500);
+    }
+
+    function updateTimerDisplay() {
+        let m = Math.max(0, Math.floor(remainingTime / 60)).toString()[_0xef21[80]](2, _0xef21[81]);
+        let s = Math.max(0, remainingTime % 60).toString()[_0xef21[80]](2, _0xef21[81]);
+        const el = document[_0xef21[9]](_0xef21[64]);
+        el[_0xef21[11]] = `${m}:${s}`;
+        if(remainingTime <= 0) el[_0xef21[16]][_0xef21[17]](_0xef21[65]);
+        else el[_0xef21[16]][_0xef21[22]](_0xef21[65]);
+    }
+
+    function speak(text, cb) { window[_0xef21[83]][_0xef21[84]](); let m = new SpeechSynthesisUtterance(text); m[_0xef21[85]] = _0xef21[86]; m[_0xef21[87]] = cb; window[_0xef21[83]][_0xef21[88]](m); }
+    function speakWord() {
+        window[_0xef21[83]][_0xef21[84]]();
+        let cleanWord = currentWord.split(/[\/\(]+/)[0][_0xef21[25]]();
+        let m = new SpeechSynthesisUtterance(cleanWord);
+        m[_0xef21[85]] = _0xef21[86]; m[_0xef21[89]] = speechSpeed; window[_0xef21[83]][_0xef21[88]](m);
+    }
+
+    function speakCurrentWord() { speakWord(); }
+    function showPage(id) { document[_0xef21[91]](_0xef21[90])[_0xef21[92]](p => p[_0xef21[16]][_0xef21[22]](_0xef21[73])); document[_0xef21[9]](id)[_0xef21[16]][_0xef21[17]](_0xef21[73]); }
+    function goHome() { showPage(_0xef21[93]); }
+    function setTime() { let i = prompt("Seconds:", "60"); if (i && !isNaN(i)) { gameTimeLimit = parseInt(i); document[_0xef21[9]](_0xef21[94])[_0xef21[11]] = `⏱ ${gameTimeLimit}s`; } }
+    function endGameEarly() { clearInterval(timerInterval); timeIsUp = true; window[_0xef21[83]][_0xef21[84]](); goHome(); }
+    function closeModalAndHome() { document[_0xef21[9]](_0xef21[79])[_0xef21[37]][_0xef21[38]] = _0xef21[40]; goHome(); }
+    </script>
+</body>
+</html>
