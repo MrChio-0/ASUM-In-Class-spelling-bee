@@ -218,6 +218,14 @@
         }
     }
 
+    function setTime() {
+        let input = prompt("Set Time Limit (in Seconds):", "60");
+        if (input !== null && !isNaN(input) && input.trim() !== "") {
+            gameTimeLimit = parseInt(input.trim());
+            document[_0x8b3a[9]](_0x8b3a[93])[_0x8b3a[11]] = `⏱ ${gameTimeLimit}s`;
+        }
+    }
+
     function adjustSpeechSpeed(e) {
         if(e) e.stopPropagation();
         let inputSpeed = prompt("Enter Speech Speed (Recommended: 0.5 - 1.5):", speechSpeed);
@@ -430,7 +438,6 @@
     function speakCurrentWord() { speakWord(); }
     function showPage(id) { document[_0x8b3a[89]](_0x8b3a[88])[_0x8b3a[90]](p => p[_0x8b3a[14]][_0x8b3a[19]](_0x8b3a[72])); document[_0x8b3a[9]](id)[_0x8b3a[14]][_0x8b3a[15]](_0x8b3a[72]); }
     function goHome() { showPage(_0x8b3a[91]); }
-    function setTime() { let i = prompt("Seconds:", "60"); if (i && !isNaN(i)) { gameTimeLimit = parseInt(i); document[_0x8b3a[9]](_0x8b3a[92])[_0x8b3a[11]] = `⏱ ${gameTimeLimit}s`; } }
     function endGameEarly() { clearInterval(timerInterval); timeIsUp = true; window[_0x8b3a[81]][_0x8b3a[82]](); goHome(); }
     function closeModalAndHome() { document[_0x8b3a[9]](_0x8b3a[78])[_0x8b3a[34]][_0x8b3a[35]] = _0x8b3a[37]; goHome(); }
     </script>
